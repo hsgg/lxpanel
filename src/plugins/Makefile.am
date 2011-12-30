@@ -24,14 +24,14 @@ libbuiltin_plugins_a_CFLAGS = \
 
 if ENABLE_MENU_CACHE
 MENU_SOURCES = \
-	menu.c
+	menu.c \
+	launchbar.c
 endif
 
 PLUGINS_SOURCES = \
 	dclock.c \
 	dirmenu.c \
 	image.c \
-	launchbar.c \
 	launchbutton.c \
 	pager.c \
 	separator.c \
