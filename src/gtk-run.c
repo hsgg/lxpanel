@@ -17,12 +17,14 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  */
 
+#include <gdk/gdk.h>
 #include <gtk/gtk.h>
 #include <gdk/gdkx.h>
 #include <glib/gi18n.h>
 #include <string.h>
 #include <unistd.h>
 
+#include "Xsupport.h"
 #include "misc.h"
 #include <menu-cache.h>
 
@@ -397,6 +399,15 @@ void gtk_run()
 			reload_notify_id = menu_cache_add_reload_notify(menu_cache, (GFunc)reload_apps, NULL);
 		}
 	}
+
+        GdkWindow * gdk_window = gtk_widget_get_window(win);
+        Window w = GDK_WINDOW_XID(gdk_window);
+        int window_desktop = get_net_wm_desktop(w);
+        int current_desktop = get_net_current_desktop();
+        if (window_desktop != 0xFFFFFFFF && window_desktop != current_desktop)
+        {
+            set_net_wm_desktop(w, current_desktop);
+        }
 
 	activate_window(GTK_WINDOW(win));
 }
