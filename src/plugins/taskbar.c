@@ -109,6 +109,7 @@ typedef struct _taskbar {
     gboolean grouped_tasks;			/* User preference: windows from same task are grouped onto a single button */
     int task_width_max;				/* Maximum width of a taskbar button in horizontal orientation */
     int spacing;				/* Spacing between taskbar buttons */
+    int border;					/* Border around taskbar */
     gboolean use_net_active;			/* NET_WM_ACTIVE_WINDOW is supported by the window manager */
     gboolean net_active_checked;		/* True if use_net_active is valid */
 } TaskbarPlugin;
@@ -186,6 +187,7 @@ static void menu_close_window(GtkWidget * widget, TaskbarPlugin * tb);
 static void taskbar_make_menu(TaskbarPlugin * tb);
 static void taskbar_window_manager_changed(GdkScreen * screen, TaskbarPlugin * tb);
 static void taskbar_build_gui(Plugin * p);
+static void taskbar_update_icon_size(TaskbarPlugin *tb);
 static int taskbar_constructor(Plugin * p, char ** fp);
 static void taskbar_destructor(Plugin * p);
 static void taskbar_apply_configuration(Plugin * p);
@@ -1242,7 +1244,7 @@ static void taskbar_update_style(TaskbarPlugin * tb)
     GtkOrientation bo = (tb->plug->panel->orientation == ORIENT_HORIZ) ? GTK_ORIENTATION_HORIZONTAL : GTK_ORIENTATION_VERTICAL;
     icon_grid_set_geometry(tb->icon_grid, bo,
         ((tb->icons_only) ? tb->icon_size + ICON_ONLY_EXTRA : tb->task_width_max), tb->icon_size,
-        tb->spacing, 0, tb->plug->panel->height);
+        tb->spacing, tb->border, tb->plug->panel->height);
 }
 
 /* Update style on a task button when created or after a configuration change. */
@@ -1820,7 +1822,7 @@ static void taskbar_build_gui(Plugin * p)
 
     /* Make container for task buttons as a child of top level widget. */
     GtkOrientation bo = (tb->plug->panel->orientation == ORIENT_HORIZ) ? GTK_ORIENTATION_HORIZONTAL : GTK_ORIENTATION_VERTICAL;
-    tb->icon_grid = icon_grid_new(p->panel, p->pwid, bo, tb->task_width_max, tb->icon_size, tb->spacing, 0, p->panel->height);
+    tb->icon_grid = icon_grid_new(p->panel, p->pwid, bo, tb->task_width_max, tb->icon_size, tb->spacing, tb->border, p->panel->height);
     icon_grid_set_constrain_width(tb->icon_grid, TRUE);
     taskbar_update_style(tb);
 
@@ -1862,6 +1864,7 @@ static int taskbar_constructor(Plugin * p, char ** fp)
     tb->show_all_desks    = FALSE;
     tb->task_width_max    = TASK_WIDTH_MAX;
     tb->spacing           = 1;
+    tb->border            = 0;
     tb->use_mouse_wheel   = TRUE;
     tb->use_urgency_hint  = TRUE;
     tb->grouped_tasks     = FALSE;
@@ -1894,6 +1897,8 @@ static int taskbar_constructor(Plugin * p, char ** fp)
                     tb->task_width_max = atoi(s.t[1]);
                 else if (g_ascii_strcasecmp(s.t[0], "spacing") == 0)
                     tb->spacing = atoi(s.t[1]);
+                else if (g_ascii_strcasecmp(s.t[0], "border") == 0)
+                    tb->border = atoi(s.t[1]);
                 else if (g_ascii_strcasecmp(s.t[0], "UseMouseWheel") == 0)
                     tb->use_mouse_wheel = str2num(bool_pair, s.t[1], 1);
                 else if (g_ascii_strcasecmp(s.t[0], "UseUrgencyHint") == 0)
@@ -1912,6 +1917,7 @@ static int taskbar_constructor(Plugin * p, char ** fp)
             }
         }
     }
+    taskbar_update_icon_size(tb);
 
     /* Build the graphic elements. */
     taskbar_build_gui(p);
@@ -1957,10 +1963,30 @@ static void taskbar_destructor(Plugin * p)
     g_free(tb);
 }
 
+static void taskbar_update_icon_size(TaskbarPlugin *tb)
+{
+    /* If the icon size changed, refetch all the icons. */
+    if (tb->plug->panel->icon_size - 2 * tb->border != tb->icon_size)
+    {
+        tb->icon_size = tb->plug->panel->icon_size - 2 * tb->border;
+        Task * tk;
+        for (tk = tb->task_list; tk != NULL; tk = tk->task_flink)
+        {
+            GdkPixbuf * pixbuf = task_update_icon(tb, tk, None);
+            if (pixbuf != NULL)
+            {
+                gtk_image_set_from_pixbuf(GTK_IMAGE(tk->image), pixbuf);
+                g_object_unref(pixbuf);
+            }
+        }
+    }
+}
+
 /* Callback from configuration dialog mechanism to apply the configuration. */
 static void taskbar_apply_configuration(Plugin * p)
 {
     TaskbarPlugin * tb = (TaskbarPlugin *) p->priv;
+    taskbar_update_icon_size(tb);
 
     /* Update style on taskbar. */
     taskbar_update_style(tb);
@@ -1992,6 +2018,7 @@ static void taskbar_configure(Plugin * p, GtkWindow * parent)
         _("Combine multiple application windows into a single button"), &tb->grouped_tasks, CONF_TYPE_BOOL,
         _("Maximum width of task button"), &tb->task_width_max, CONF_TYPE_INT,
         _("Spacing"), &tb->spacing, CONF_TYPE_INT,
+        _("Border"), &tb->border, CONF_TYPE_INT,
         NULL);
     gtk_window_present(GTK_WINDOW(dlg));
 }
@@ -2008,6 +2035,7 @@ static void taskbar_save_configuration(Plugin * p, FILE * fp)
     lxpanel_put_bool(fp, "FlatButton", tb->flat_button);
     lxpanel_put_int(fp, "MaxTaskWidth", tb->task_width_max);
     lxpanel_put_int(fp, "spacing", tb->spacing);
+    lxpanel_put_int(fp, "border", tb->border);
     lxpanel_put_bool(fp, "GroupedTasks", tb->grouped_tasks);
 }
 
@@ -2015,24 +2043,9 @@ static void taskbar_save_configuration(Plugin * p, FILE * fp)
 static void taskbar_panel_configuration_changed(Plugin * p)
 {
     TaskbarPlugin * tb = (TaskbarPlugin *) p->priv;
+    taskbar_update_icon_size(tb);
     taskbar_update_style(tb);
     taskbar_make_menu(tb);
-
-    /* If the icon size changed, refetch all the icons. */
-    if (tb->plug->panel->icon_size != tb->icon_size)
-    {
-        tb->icon_size = tb->plug->panel->icon_size;
-        Task * tk;
-        for (tk = tb->task_list; tk != NULL; tk = tk->task_flink)
-        {
-            GdkPixbuf * pixbuf = task_update_icon(tb, tk, None);
-            if (pixbuf != NULL)
-            {
-                gtk_image_set_from_pixbuf(GTK_IMAGE(tk->image), pixbuf);
-                g_object_unref(pixbuf);
-            }
-        }
-    }
 
     /* Redraw all the labels.  Icon size or font color may have changed. */
     taskbar_redraw(tb);
