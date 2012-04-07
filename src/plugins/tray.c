@@ -88,6 +88,7 @@ typedef struct _tray_plugin {
 
 static TrayClient * client_lookup(TrayPlugin * tr, Window win);
 static void client_delete(TrayPlugin * tr, TrayClient * tc, gboolean unlink);
+static gboolean client_plug_removed(GtkSocket *socket, TrayClient *tc);
 static void balloon_message_free(BalloonMessage * message);
 static void balloon_message_advance(TrayPlugin * tr, gboolean destroy_timer, gboolean display_next);
 static gboolean balloon_message_activate_event(GtkWidget * widget, GdkEventButton * event, TrayPlugin * tr);
@@ -120,6 +121,19 @@ static TrayClient * client_lookup(TrayPlugin * tr, Window window)
     return NULL;
 }
 
+static void client_print(TrayPlugin * tr, char c, TrayClient * tcadd)
+{
+    TrayClient * tc;
+    char *sep = "";
+    ERR("tray client list: (%c%p) ", c, tcadd);
+    for (tc = tr->client_list; tc != NULL; tc = tc->client_flink)
+    {
+        ERR("%s%c%p", sep, tc == tcadd ? c : ' ', tc);
+        sep = " ";
+    }
+    ERR("\n");
+}
+
 /* Delete a client. */
 static void client_delete(TrayPlugin * tr, TrayClient * tc, gboolean unlink)
 {
@@ -150,6 +164,14 @@ static void client_delete(TrayPlugin * tr, TrayClient * tc, gboolean unlink)
 
     /* Deallocate the client structure. */
     g_free(tc);
+    client_print(tr, '-', tc);
+}
+
+static gboolean client_plug_removed(GtkSocket *socket, TrayClient *tc)
+{
+    ERR("Client removed\n");
+    client_delete(tc->tr, tc, TRUE);
+    return TRUE;
 }
 
 /*** Balloon message display ***/
@@ -437,6 +459,7 @@ static void trayclient_request_dock(TrayPlugin * tr, XClientMessageEvent * xeven
 
     /* Allocate a socket.  This is the tray side of the Xembed connection. */
     tc->socket = gtk_socket_new();
+    g_signal_connect(tc->socket, "plug-removed", G_CALLBACK(client_plug_removed), (gpointer) tc);
 
     /* Link the client structure into the client list. */
     if (tc_pred == NULL)
@@ -455,6 +478,7 @@ static void trayclient_request_dock(TrayPlugin * tr, XClientMessageEvent * xeven
 
     /* Connect the socket to the plug.  This can only be done after the socket is realized. */
     gtk_socket_add_id(GTK_SOCKET(tc->socket), tc->window);
+    client_print(tr, '+', tc);
 }
 
 /* GDK event filter. */
@@ -748,3 +772,5 @@ PluginClass tray_plugin_class = {
     panel_configuration_changed : tray_panel_configuration_changed
 
 };
+
+/* vim: set sw=4 sts=4 et : */
