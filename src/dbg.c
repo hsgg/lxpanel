@@ -16,6 +16,30 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
+#include <time.h>
+#include <stdbool.h>
+#include <stdarg.h>
+
 #include "dbg.h"
 
 int log_level = LOG_WARN;
+
+void dbg(char const* fmt, ...)
+{
+	static struct timespec ta = {};
+	struct timespec tb;
+	va_list ap;
+
+	clock_gettime(CLOCK_MONOTONIC, &tb);
+
+	bool wrap = tb.tv_nsec < ta.tv_nsec ? true : false;
+	fprintf(stderr, "%ld.%09ld (%ld.%09ld): ", tb.tv_sec, tb.tv_nsec,
+			tb.tv_sec - ta.tv_sec - (wrap ? 1 : 0),
+			tb.tv_nsec - ta.tv_nsec + (wrap ? 1000000000 : 0));
+
+	va_start(ap, fmt);
+	vfprintf(stderr, fmt, ap);
+	va_end(ap);
+
+	ta = tb;
+}

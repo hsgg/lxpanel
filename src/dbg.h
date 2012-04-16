@@ -24,6 +24,8 @@
 #define RET2(args...)   do { fprintf(stderr, "%s:%s:%-5d: RETURN\n",  __FILE__,__FUNCTION__, __LINE__);\
 return args; } while(0)
 
+extern void dbg(char const* fmt, ...);
+
 enum { LOG_NONE, LOG_ERR, LOG_WARN, LOG_INFO, LOG_ALL };
 #ifdef DEBUG
 
