@@ -1005,7 +1005,6 @@ static void task_unlink_class(Task * tk)
         {
             /* Removing the head of the list.  This causes a new task to be the visible task, so we redraw. */
             tc->task_class_head = tk->task_class_flink;
-            tk->task_class_flink = NULL;
             if (tc->task_class_head != NULL)
                 task_button_redraw(tc->task_class_head);
         }
@@ -1020,9 +1019,8 @@ static void task_unlink_class(Task * tk)
               tk_pred = tk_cursor, tk_cursor = tk_cursor->task_class_flink) ;
             if (tk_cursor == tk)
                 tk_pred->task_class_flink = tk->task_class_flink;
-            tk->task_class_flink = NULL;
         }
-        tk->res_class_flink = NULL;
+        tk->task_class_flink = NULL;
 
         /* Recompute group visibility. */
         recompute_group_visibility_for_class(tk->tb, tc);
