@@ -409,7 +409,7 @@ static void config(Plugin *p, GtkWindow* parent) {
     dialog = create_generic_config_dlg(_(p->class->name),
             GTK_WIDGET(parent),
             (GSourceFunc) applyConfig, (gpointer) p,
-            _("Remember governor and frequency"), &cf->remember, (GType)CONF_TYPE_BOOL,
+            _("Remember governor and frequency"), &cf->remember, CONF_TYPE_BOOL,
             NULL);
     if (dialog)
         gtk_window_present(GTK_WINDOW(dialog));

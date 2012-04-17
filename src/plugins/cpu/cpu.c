@@ -366,12 +366,12 @@ static void cpu_configure(Plugin * p, GtkWindow * parent)
         _(p->class->name),
         GTK_WIDGET(parent),
         (GSourceFunc) cpu_apply_configuration, (gpointer) p,
-        "", 0, (GType)CONF_TYPE_BEGIN_TABLE,
-        _("Foreground color"), &c->fg_color, (GType)CONF_TYPE_COLOR,
-        _("Background color"), &c->bg_color, (GType)CONF_TYPE_COLOR,
-        _("Update interval" ), &c->update_interval, (GType)CONF_TYPE_INT,
-        "int-min-value", (gpointer)&update_interval_min, (GType)CONF_TYPE_SET_PROPERTY,
-        "int-max-value", (gpointer)&update_interval_max, (GType)CONF_TYPE_SET_PROPERTY,
+        "", 0, CONF_TYPE_BEGIN_TABLE,
+        _("Foreground color"), &c->fg_color, CONF_TYPE_COLOR,
+        _("Background color"), &c->bg_color, CONF_TYPE_COLOR,
+        _("Update interval" ), &c->update_interval, CONF_TYPE_INT,
+        "int-min-value", (gpointer)&update_interval_min, CONF_TYPE_SET_PROPERTY,
+        "int-max-value", (gpointer)&update_interval_max, CONF_TYPE_SET_PROPERTY,
         NULL);
     if (dlg)
         gtk_window_present(GTK_WINDOW(dlg));
