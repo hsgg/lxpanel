@@ -58,7 +58,7 @@ typedef struct {
 } cpufreq;
 
 typedef struct {
-    void *data;
+    char *data;
     cpufreq *cf;
 } Param;
 
@@ -67,7 +67,7 @@ get_cur_governor(cpufreq *cf){
     FILE *fp;
     char buf[ 100 ], sstmp [ 256 ];
 
-    sprintf(sstmp,"%s/%s",cf->cpus->data, SCALING_GOV);
+    sprintf(sstmp,"%s/%s", (char*)cf->cpus->data, SCALING_GOV);
     if ((fp = fopen( sstmp, "r")) != NULL) {
         fgets(buf, 100, fp);
         buf[strlen(buf)-1] = '\0';
@@ -86,7 +86,7 @@ get_cur_freq(cpufreq *cf){
     FILE *fp;
     char buf[ 100 ], sstmp [ 256 ];
 
-    sprintf(sstmp,"%s/%s",cf->cpus->data, SCALING_CUR_FREQ);
+    sprintf(sstmp,"%s/%s", (char*)cf->cpus->data, SCALING_CUR_FREQ);
     if ((fp = fopen( sstmp, "r")) != NULL) {
         fgets(buf, 100, fp);
         buf[strlen(buf)-1] = '\0';
@@ -98,8 +98,8 @@ get_cur_freq(cpufreq *cf){
 static void
 get_governors(cpufreq *cf){
     FILE *fp;
-    GList *l;
-    char buf[ 100 ], sstmp [ 256 ], c, bufl = 0;
+    char buf[ 100 ], sstmp [ 256 ], c;
+    unsigned char bufl = 0;
 
     g_list_free(cf->governors);
     cf->governors = NULL;
@@ -110,7 +110,7 @@ get_governors(cpufreq *cf){
         cf->governors = NULL;
         return;
     }
-    sprintf(sstmp,"%s/%s",cf->cpus->data, SCALING_AGOV);
+    sprintf(sstmp,"%s/%s", (char*)cf->cpus->data, SCALING_AGOV);
 
     if (!(fp = fopen( sstmp, "r"))) {
         printf("cpufreq: cannot open %s\n",sstmp);
@@ -136,11 +136,11 @@ get_governors(cpufreq *cf){
 static void
 cpufreq_set_freq(GtkWidget *widget, Param* p){
     FILE *fp;
-    char buf[ 100 ], sstmp [ 256 ];
+    char sstmp [ 256 ];
 
     if(strcmp(p->cf->cur_governor, "userspace")) return;
 
-    sprintf(sstmp,"%s/%s",p->cf->cpus->data, SCALING_SETFREQ);
+    sprintf(sstmp,"%s/%s", (char*)p->cf->cpus->data, SCALING_SETFREQ);
     if ((fp = fopen( sstmp, "w")) != NULL) {
         fprintf(fp,"%s",p->data);
         fclose(fp);
@@ -151,9 +151,10 @@ static GtkWidget *
 frequency_menu(cpufreq *cf){
     FILE *fp;
     Param* param;
-    char buf[ 100 ], sstmp [ 256 ], c, bufl = 0;
+    char buf[ 100 ], sstmp [ 256 ], c;
+    unsigned char bufl = 0;
 
-    sprintf(sstmp,"%s/%s",cf->cpus->data, SCALING_AFREQ);
+    sprintf(sstmp,"%s/%s", (char*)cf->cpus->data, SCALING_AFREQ);
 
     if (!(fp = fopen( sstmp, "r"))) {
         printf("cpufreq: cannot open %s\n",sstmp);
@@ -227,19 +228,18 @@ get_cpus(cpufreq *cf)
 static void
 cpufreq_set_governor(GtkWidget *widget, Param* p){
     FILE *fp;
-    char buf[ 100 ], sstmp [ 256 ];
+    char sstmp [ 256 ];
 
-    sprintf(sstmp, "%s/%s", p->cf->cpus->data, SCALING_GOV);
+    sprintf(sstmp, "%s/%s", (char*)p->cf->cpus->data, SCALING_GOV);
     if ((fp = fopen( sstmp, "w")) != NULL) {
         fprintf(fp,"%s",p->data);
         fclose(fp);
     }
 }
 
-static GtkWidget *
+static GtkMenu *
 cpufreq_menu(cpufreq *cf){
     GList *l;
-    GSList *group;
     char buff[100];
     GtkMenuItem* menuitem;
     Param* param;
@@ -248,13 +248,12 @@ cpufreq_menu(cpufreq *cf){
     g_signal_connect(menu, "selection-done", G_CALLBACK(gtk_widget_destroy), NULL);
 
     get_governors(cf);
-    group = NULL;
 
     if((cf->governors == NULL) || (!cf->has_cpufreq) || (cf->cur_governor == NULL)){
         menuitem = GTK_MENU_ITEM(gtk_menu_item_new_with_label("CPUFreq not supported"));
         gtk_menu_append (GTK_MENU_SHELL (menu), GTK_WIDGET (menuitem));
         gtk_widget_show (GTK_WIDGET (menuitem));
-        return GTK_WIDGET(menu);
+        return menu;
     }
 
     if(strcmp(cf->cur_governor, "userspace") == 0){
@@ -270,23 +269,23 @@ cpufreq_menu(cpufreq *cf){
     for( l = cf->governors; l; l = l->next )
     {
       if(strcmp((char*)l->data, cf->cur_governor) == 0){
-        sprintf(buff,"> %s", l->data);
+        sprintf(buff,"> %s", (char*)l->data);
         menuitem = GTK_MENU_ITEM(gtk_menu_item_new_with_label(strdup(buff)));
       }else{
-        sprintf(buff,"   %s", l->data);
+        sprintf(buff,"   %s", (char*)l->data);
         menuitem = GTK_MENU_ITEM(gtk_menu_item_new_with_label(strdup(buff)));
       }
 
       gtk_menu_shell_append (GTK_MENU_SHELL (menu), GTK_WIDGET (menuitem));
       gtk_widget_show (GTK_WIDGET (menuitem));
       param = g_new0(Param, 1);
-      param->data = l->data;
+      param->data = (char*)l->data;
       param->cf = cf;
       g_signal_connect(G_OBJECT(menuitem), "activate", G_CALLBACK(cpufreq_set_governor), param);
       g_object_weak_ref(G_OBJECT(menuitem), (GWeakNotify) g_free, param);
     }
 
-    return GTK_WIDGET (menu);
+    return menu;
 }
 
 
@@ -297,16 +296,16 @@ clicked( GtkWidget *widget, GdkEventButton* evt, Plugin* plugin)
     ENTER2;
     if( evt->button == 1 )
     {
-// Setting governor can't work without root privilege
-//      gtk_menu_popup( cpufreq_menu((cpufreq*)plugin->priv), NULL, NULL, NULL, NULL, 
-//                      evt->button, evt->time );
-      return TRUE;
-    }else if ( evt->button == 3 )
+        // Setting governor can't work without root privilege
+        gtk_menu_popup( cpufreq_menu((cpufreq*)plugin->priv), NULL, NULL, NULL, NULL, 
+                evt->button, evt->time );
+        return TRUE;
+    }
+    else if ( evt->button == 3 )
     {
         GtkMenu* popup = lxpanel_get_panel_menu( plugin->panel, plugin, FALSE );
         gtk_menu_popup( popup, NULL, NULL, NULL, NULL, evt->button, evt->time );
         return TRUE;
-      return TRUE;
     }
 
     RET2(TRUE);
@@ -333,7 +332,6 @@ static int
 cpufreq_constructor(Plugin *p, char** fp)
 {
     cpufreq *cf;
-    GtkWidget *button;
 
     ENTER;
     cf = g_new0(cpufreq, 1);
@@ -447,6 +445,6 @@ PluginClass cpufreq_plugin_class = {
     constructor : cpufreq_constructor,
     destructor  : cpufreq_destructor,
     config : config,
-    save : NULL,
+    save : save_config,
     panel_configuration_changed : NULL
 };
