@@ -233,7 +233,7 @@ static void task_update_pixmap(PagerTask * tk, PagerDesk * d)
                 color =
                     (d->pg->focused_task == tk) ? &style->fg[GTK_STATE_SELECTED] : &style->fg[GTK_STATE_NORMAL];
                 cairo_set_source_rgb(cr, (double)color->red/65535, (double)color->green/65535, (double)color->blue/65535);
-                cairo_rectangle(cr, x, y, w, h);
+                cairo_rectangle(cr, x + 0.5, y + 0.5, w, h);
                 cairo_stroke(cr);
                 cairo_destroy(cr);
             }
