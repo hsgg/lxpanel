@@ -449,7 +449,7 @@ static int netstat_constructor(Plugin *p, char **fp)
     netproc_close(ns->fnetd->netdev_fp);
     refresh_systray(ns, ns->fnetd->netdevlist);
 
-    ns->ttag = g_timeout_add(NETSTAT_IFACE_POLL_DELAY, (GSourceFunc)refresh_devstat, ns);
+    ns->ttag = gdk_threads_add_timeout(NETSTAT_IFACE_POLL_DELAY, (GSourceFunc)refresh_devstat, ns);
 
     p->pwid = gtk_event_box_new();
     GTK_WIDGET_SET_FLAGS(p->pwid, GTK_NO_WINDOW);

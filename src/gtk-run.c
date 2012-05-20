@@ -171,7 +171,7 @@ static void setup_auto_complete_with_data(ThreadData* data)
     g_object_unref( comp );
 }
 
-void thread_data_free(ThreadData* data)
+static void thread_data_free(ThreadData* data)
 {
     g_slist_foreach(data->files, (GFunc)g_free, NULL);
     g_slist_free(data->files);
@@ -218,7 +218,7 @@ static gpointer thread_func(ThreadData* data)
 
     data->files = list;
     /* install an idle handler to free associated data */
-    g_idle_add((GSourceFunc)on_thread_finished, data);
+    gdk_threads_add_idle((GSourceFunc)on_thread_finished, data);
 
     return NULL;
 }

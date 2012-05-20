@@ -136,7 +136,9 @@ static gboolean cpu_update(CPUPlugin * c)
                 c->ring_cursor = 0;
 
             /* Redraw with the new sample. */
+            gdk_threads_enter();
             redraw_pixmap(c);
+            gdk_threads_leave();
         }
     }
     return TRUE;

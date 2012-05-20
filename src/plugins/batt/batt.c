@@ -245,16 +245,16 @@ void update_display(lx_battery *lx_b, gboolean repaint) {
 
 /* This callback is called every 3 seconds */
 static int update_timout(lx_battery *lx_b) {
-    GDK_THREADS_ENTER();
     lx_b->state_elapsed_time++;
     lx_b->info_elapsed_time++;
 
     /* check the  batteries every 3 seconds */
     battery_update( lx_b->b );
 
+    gdk_threads_enter();
     update_display( lx_b, TRUE );
+    gdk_threads_leave();
 
-    GDK_THREADS_LEAVE();
     return TRUE;
 }
 
@@ -456,7 +456,7 @@ constructor(Plugin *p, char **fp)
 
    
     /* Start the update loop */
-    lx_b->timer = g_timeout_add_seconds( 9, (GSourceFunc) update_timout, (gpointer) lx_b);
+    lx_b->timer = g_timeout_add_seconds(9, (GSourceFunc) update_timout, (gpointer) lx_b);
 
     RET(TRUE);
 

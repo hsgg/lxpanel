@@ -259,7 +259,7 @@ static void balloon_message_display(TrayPlugin * tr, BalloonMessage * msg)
 
     /* Set a timer, if the client specified one.  Both are in units of milliseconds. */
     if (msg->timeout != 0)
-        tr->balloon_message_timer = g_timeout_add(msg->timeout, (GSourceFunc) balloon_message_timeout, tr);
+        tr->balloon_message_timer = gdk_threads_add_timeout(msg->timeout, (GSourceFunc) balloon_message_timeout, tr);
 }
 
 /* Add a balloon message to the tail of the message queue.  If it is the only element, display it immediately. */

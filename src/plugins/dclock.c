@@ -160,7 +160,7 @@ static void dclock_timer_set(DClockPlugin * dc)
     /* Be defensive, and set the timer. */
     if (milliseconds <= 0)
         milliseconds = 1000;
-    dc->timer = g_timeout_add(milliseconds, (GSourceFunc) dclock_update_display, (gpointer) dc);
+    dc->timer = gdk_threads_add_timeout(milliseconds, (GSourceFunc) dclock_update_display, (gpointer) dc);
 }
 
 /* Periodic timer callback.

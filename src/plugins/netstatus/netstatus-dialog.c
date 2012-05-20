@@ -802,7 +802,7 @@ netstatus_dialog_new (NetstatusIface *iface)
   netstatus_dialog_setup_device_support (data);
   netstatus_dialog_setup_configure_button (data);
 
-  data->iface_list_monitor = g_timeout_add (2 * 1000,
+  data->iface_list_monitor = gdk_threads_add_timeout(2 * 1000,
 					    (GSourceFunc) netstatus_dialog_iface_list_monitor,
 					    data);
   netstatus_dialog_iface_list_monitor (data);

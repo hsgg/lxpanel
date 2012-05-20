@@ -261,7 +261,9 @@ cpu_update(Monitor * c)
                 c->ring_cursor = 0;
 
             /* Redraw with the new sample. */
+            gdk_threads_enter();
             redraw_pixmap(c);
+            gdk_threads_leave();
         }
     }
     return TRUE;
@@ -274,10 +276,12 @@ cpu_tooltip_update (Monitor *m)
         gchar *tooltip_text;
         gint ring_pos = (m->ring_cursor == 0)
             ? m->pixmap_width - 1 : m->ring_cursor - 1;
+        gdk_threads_enter();
         tooltip_text = g_strdup_printf(_("CPU usage: %.2f%%"),
                 m->stats[ring_pos] * 100);
         gtk_widget_set_tooltip_text(m->da, tooltip_text);
         g_free(tooltip_text);
+        gdk_threads_leave();
     }
 }
 
@@ -344,7 +348,9 @@ mem_update(Monitor * m)
 
 
         /* Redraw the pixmap, with the new sample */
+        gdk_threads_enter();
         redraw_pixmap (m);
+        gdk_threads_leave();
     }
 
     RET(TRUE);
@@ -357,11 +363,13 @@ mem_tooltip_update (Monitor *m)
         gchar *tooltip_text;
         gint ring_pos = (m->ring_cursor == 0)
             ? m->pixmap_width - 1 : m->ring_cursor - 1;
+        gdk_threads_enter();
         tooltip_text = g_strdup_printf(_("RAM usage: %.1fMB (%.2f%%)"),
                 m->stats[ring_pos] * m->total / 1024,
                 m->stats[ring_pos] * 100);
         gtk_widget_set_tooltip_text(m->da, tooltip_text);
         g_free(tooltip_text);
+        gdk_threads_leave();
     }
 }
 /******************************************************************************

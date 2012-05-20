@@ -198,7 +198,7 @@ static void set_timer_on_task(Task * tk)
 {
     gint interval;
     g_object_get(gtk_widget_get_settings(tk->button), "gtk-cursor-blink-time", &interval, NULL);
-    tk->flash_timeout = g_timeout_add(interval, (GSourceFunc) flash_window_timeout, tk);
+    tk->flash_timeout = gdk_threads_add_timeout(interval, (GSourceFunc) flash_window_timeout, tk);
 }
 
 /* Determine if a task is visible considering only its desktop placement. */
@@ -1161,7 +1161,7 @@ static gboolean taskbar_button_drag_motion(GtkWidget * widget, GdkDragContext * 
 {
     /* Prevent excessive motion notification. */
     if (tk->tb->dnd_delay_timer == 0)
-        tk->tb->dnd_delay_timer = g_timeout_add(DRAG_ACTIVE_DELAY, (GSourceFunc) taskbar_button_drag_motion_timeout, tk);
+        tk->tb->dnd_delay_timer = gdk_threads_add_timeout(DRAG_ACTIVE_DELAY, (GSourceFunc) taskbar_button_drag_motion_timeout, tk);
     gdk_drag_status(drag_context, 0, time);
     return TRUE;
 }

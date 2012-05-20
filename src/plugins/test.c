@@ -66,7 +66,7 @@ test_constructor(Plugin *p)
     gtk_widget_show(dc->main);
     p->pwid = dc->main;
 
-    dc->timer = g_timeout_add(200, clock_update, (gpointer)dc);
+    dc->timer = gdk_threads_add_timeout(200, clock_update, (gpointer)dc);
 
     RET(1);
 }

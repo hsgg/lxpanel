@@ -250,7 +250,7 @@ static void process_client_msg ( XClientMessageEvent* ev )
                     /* show_system_menu( p->system_menus->data ); */
                     /* FIXME: I've no idea why this doesn't work without timeout
                               under some WMs, like icewm. */
-                    g_timeout_add( 200, (GSourceFunc)show_system_menu,
+                    gdk_threads_add_timeout( 200, (GSourceFunc)show_system_menu,
                                    p->system_menus->data );
                 }
             }
@@ -468,7 +468,7 @@ static gboolean delay_update_background( Panel* p )
 static void
 panel_realize(GtkWidget *widget, Panel *p)
 {
-    g_idle_add_full( G_PRIORITY_LOW, 
+    gdk_threads_add_idle_full( G_PRIORITY_LOW,
             (GSourceFunc)delay_update_background, p, NULL );
 }
 
@@ -477,7 +477,7 @@ panel_style_set(GtkWidget *widget, GtkStyle* prev, Panel *p)
 {
     /* FIXME: This dirty hack is used to fix the background of systray... */
     if( GTK_WIDGET_REALIZED( widget ) )
-        g_idle_add_full( G_PRIORITY_LOW, 
+        gdk_threads_add_idle_full( G_PRIORITY_LOW,
                 (GSourceFunc)delay_update_background, p, NULL );
 }
 
@@ -876,7 +876,7 @@ static gboolean panel_enter(GtkImage *widget, GdkEventCrossing *event, Panel *p)
          * set a timer to recheck it in a half second. */
         if (p->hide_timeout == 0)
         {
-            p->hide_timeout = g_timeout_add(500, (GSourceFunc) panel_leave_real, p);
+            p->hide_timeout = gdk_threads_add_timeout(500, (GSourceFunc) panel_leave_real, p);
             panel_set_visibility(p, TRUE);
         }
     }
@@ -1603,9 +1603,9 @@ int main(int argc, char *argv[], char *env[])
 
     setlocale(LC_CTYPE, "");
 
-	g_thread_init(NULL);
-	gdk_threads_init();
-	gdk_threads_enter();
+    g_thread_init(NULL);
+    gdk_threads_init();
+    gdk_threads_enter();
 
     gtk_init(&argc, &argv);
 

@@ -193,7 +193,7 @@ static void icon_grid_geometry(IconGrid * ig, gboolean layout)
         {
         ig->actual_dimension = TRUE;
         ig->children_changed = FALSE;
-        g_idle_add((GSourceFunc) icon_grid_placement, ig);
+        gdk_threads_add_idle((GSourceFunc) icon_grid_placement, ig);
         }
 }
 

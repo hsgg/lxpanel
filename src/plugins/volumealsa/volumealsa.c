@@ -132,7 +132,7 @@ static gboolean asound_mixer_event(GIOChannel * channel, GIOCondition cond, gpoi
 
     if (vol->mixer_evt_idle == 0)
     {
-        vol->mixer_evt_idle = g_idle_add_full(G_PRIORITY_DEFAULT, (GSourceFunc) asound_reset_mixer_evt_idle, vol, NULL);
+        vol->mixer_evt_idle = gdk_threads_add_idle_full(G_PRIORITY_DEFAULT, (GSourceFunc) asound_reset_mixer_evt_idle, vol, NULL);
         res = snd_mixer_handle_events(vol->mixer);
     }
 
@@ -152,7 +152,7 @@ static gboolean asound_mixer_event(GIOChannel * channel, GIOCondition cond, gpoi
         gtk_widget_set_tooltip_text(vol->plugin->pwid, "ALSA (or pulseaudio) had a problem."
                 " Please check the lxpanel logs.");
 
-        g_timeout_add_seconds(1, asound_restart, vol);
+        gdk_threads_add_timeout_seconds(1, asound_restart, vol);
 
         return FALSE;
     }

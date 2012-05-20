@@ -31,6 +31,7 @@
 
 #include "netstatus-iface.h"
 
+#include <gtk/gtk.h>
 #include <glib/gi18n.h>
 
 #include <sys/types.h>
@@ -585,7 +586,7 @@ netstatus_iface_increase_poll_delay_in_error (NetstatusIface *iface)
 	  dprintf (POLLING, "Increasing polling delay after too many errors\n");
 	  iface->priv->error_polling = TRUE;
 	  g_source_remove (iface->priv->monitor_id);
-	  iface->priv->monitor_id = g_timeout_add (NETSTATUS_IFACE_ERROR_POLL_DELAY,
+	  iface->priv->monitor_id = gdk_threads_add_timeout(NETSTATUS_IFACE_ERROR_POLL_DELAY,
 						   (GSourceFunc) netstatus_iface_monitor_timeout,
 						   iface);
 	}
@@ -598,7 +599,7 @@ netstatus_iface_increase_poll_delay_in_error (NetstatusIface *iface)
       polls_in_error = 0;
 
       g_source_remove (iface->priv->monitor_id);
-      iface->priv->monitor_id = g_timeout_add (NETSTATUS_IFACE_POLL_DELAY,
+      iface->priv->monitor_id = gdk_threads_add_timeout(NETSTATUS_IFACE_POLL_DELAY,
 					       (GSourceFunc) netstatus_iface_monitor_timeout,
 					       iface);
     }
@@ -664,7 +665,7 @@ netstatus_iface_init_monitor (NetstatusIface *iface)
   if (iface->priv->name)
     {
       dprintf (POLLING, "Initialising monitor with delay of %d\n", NETSTATUS_IFACE_POLL_DELAY);
-      iface->priv->monitor_id = g_timeout_add (NETSTATUS_IFACE_POLL_DELAY,
+      iface->priv->monitor_id = gdk_threads_add_timeout(NETSTATUS_IFACE_POLL_DELAY,
 					       (GSourceFunc) netstatus_iface_monitor_timeout,
 					       iface);
 
