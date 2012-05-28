@@ -38,6 +38,11 @@ typedef struct _ThreadData
     GtkEntry* entry;
 }ThreadData;
 
+/* Note: thread_data must be accessed with the gdk_threads_enter() lock held.
+ * Using a different mutex easily leads to deadlock, because both threads would
+ * need to lock both the new mutex and the gdk_threads_enter() lock at the same
+ * time. Also, there is some fishy interaction with plugins/menu.c that is
+ * fixed by using a single lock/mutex. */
 static ThreadData* thread_data = NULL; /* thread data used to load availble programs in PATH */
 
 static MenuCacheApp* match_app_by_exec(const char* exec)
@@ -147,10 +152,8 @@ static void setup_auto_complete_with_data(ThreadData* data)
     GtkEntryCompletion* comp = gtk_entry_completion_new();
     gtk_entry_completion_set_minimum_key_length( comp, 2 );
     gtk_entry_completion_set_inline_completion( comp, TRUE );
-#if GTK_CHECK_VERSION( 2, 8, 0 )
     gtk_entry_completion_set_popup_set_width( comp, TRUE );
     gtk_entry_completion_set_popup_single_match( comp, FALSE );
-#endif
     store = gtk_list_store_new( 1, G_TYPE_STRING );
 
     for( l = data->files; l; l = l->next )
@@ -178,18 +181,19 @@ static void thread_data_free(ThreadData* data)
     g_slice_free(ThreadData, data);
 }
 
-static gboolean on_thread_finished(ThreadData* data)
+static gboolean on_thread_finished(gpointer dummy)
 {
     /* don't setup entry completion if the thread is already cancelled. */
-    if( !data->cancel )
+    if( !thread_data->cancel )
         setup_auto_complete_with_data(thread_data);
-    thread_data_free(data);
+    thread_data_free(thread_data);
     thread_data = NULL; /* global thread_data pointer */
     return FALSE;
 }
 
-static gpointer thread_func(ThreadData* data)
+static gpointer thread_func(gpointer dummy)
 {
+    gdk_threads_enter();
     GSList *list = NULL;
     gchar **dirname;
     gchar **dirnames = g_strsplit( g_getenv("PATH"), ":", 0 );
@@ -202,24 +206,26 @@ static gpointer thread_func(ThreadData* data)
             continue;
         while( !thread_data->cancel && (name = g_dir_read_name(dir)) )
         {
+            gdk_threads_leave();
             char* filename = g_build_filename( *dirname, name, NULL );
             if( g_file_test( filename, G_FILE_TEST_IS_EXECUTABLE ) )
-            {
-                if(thread_data->cancel)
-                    break;
+			{
                 if( !g_slist_find_custom( list, name, (GCompareFunc)strcmp ) )
                     list = g_slist_prepend( list, g_strdup( name ) );
             }
             g_free( filename );
+            gdk_threads_enter();
         }
         g_dir_close( dir );
     }
     g_strfreev( dirnames );
 
-    data->files = list;
-    /* install an idle handler to free associated data */
-    gdk_threads_add_idle((GSourceFunc)on_thread_finished, data);
+    thread_data->files = list;
 
+    /* install an idle handler to free associated data */
+    gdk_threads_add_idle(on_thread_finished, NULL);
+
+    gdk_threads_leave();
     return NULL;
 }
 
@@ -236,7 +242,7 @@ static void setup_auto_complete( GtkEntry* entry )
         /* load in another working thread */
         thread_data = g_slice_new0(ThreadData); /* the data will be freed in idle handler later. */
         thread_data->entry = entry;
-        g_thread_create((GThreadFunc)thread_func, thread_data, FALSE, NULL);
+        g_thread_create(thread_func, NULL, FALSE, NULL);
     }
 }
 
@@ -253,6 +259,8 @@ static void reload_apps(MenuCache* cache, gpointer user_data)
 
 static void on_response( GtkDialog* dlg, gint response, gpointer user_data )
 {
+    /* In this function, the gdk_threads_enter() lock is already held, since
+     * it is called as a GTK singal handler. */
     GtkEntry* entry = (GtkEntry*)user_data;
     if( G_LIKELY(response == GTK_RESPONSE_OK) )
     {
@@ -402,3 +410,4 @@ void gtk_run()
 	activate_window(GTK_WINDOW(win));
 }
 
+/* vim: set sw=4 ts=4 : */
